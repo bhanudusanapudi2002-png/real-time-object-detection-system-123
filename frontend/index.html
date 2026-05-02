@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision AI | Object Detection</title>
+    <!-- Modern Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Feather Icons for lightweight SVGs -->
+    <script src="https://unpkg.com/feather-icons"></script>
+
+    <style>
+        /* CSS Variables for Theme */
+        :root {
+            /* Deeper dark backgrounds */
+            --bg-body: #09090b; /* Very dark zinc */
+            --bg-card: #18181b; /* slightly lighter zinc */
+            --bg-hover: #27272a;
+            
+            /* Accents: vibrant violet/blue */
+            --accent-primary: #8b5cf6; /* violet-500 */
+            --accent-hover: #7c3aed;   /* violet-600 */
+            --accent-glow: rgba(139, 92, 246, 0.25);
+            --accent-border: rgba(139, 92, 246, 0.4);
+            
+            /* Text colors */
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            
+            /* Semantic Colors */
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+
+            --border-color: #27272a;
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at top right, var(--accent-glow) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Navbar / Header */
+        header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(9, 9, 11, 0.85); /* <-- ADDED BACKGROUND */
+            
+           
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-icon {
+            color: var(--accent-primary);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--success);
+            transition: var(--transition);
+        }
+
+        .status-badge.offline {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: currentColor;
+            border-radius: 50%;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Main Container */
+        main {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .hero-text {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        .hero-text h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            /* Ensure the gradient is clipped to the text with vendor and standard properties */
+            -webkit-background-clip: text;
+            background-clip: text;
+            /* Make the text itself transparent so the gradient shows through */
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            /* Inline-block helps some browsers apply background-clip correctly */
+            display: inline-block;
+        }
+
+        .hero-text p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Main App Card */
+        .app-card {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--border-radius);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0 1rem;
+        }
+
+        .tab-btn {
+            padding: 1.25rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent-primary);
+            box-shadow: 0 -2px 10px var(--accent-glow);
+            border-radius: 2px 2px 0 0;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 2rem;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* --- Image Upload Tab --- */
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            transition: var(--transition);
+        }
+        
+        /* When result is present, split layout on large screens */
+        .app-card.has-result .upload-grid {
+            grid-template-columns: 1fr 380px;
+        }
+
+        .drop-zone {
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 4rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            min-height: 400px;
+            overflow: hidden;
+        }
+
+        .drop-zone:hover:not(.viewing-result) {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .drop-zone.dragover:not(.viewing-result) {
+            border-color: var(--accent-primary);
+            background: var(--accent-glow);
+            transform: scale(0.99);
+        }
+
+        .drop-zone.viewing-result {
+            padding: 0;
+            border-style: solid;
+            border-color: rgba(255,255,255,0.08);
+            cursor: default;
+            background: #000; /* Black bg for images */
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--accent-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .drop-text h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-text p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .drop-text span.browse {
+            color: var(--accent-primary);
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .image-preview {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .image-preview.visible {
+            opacity: 1;
+        }
+
+        /* Processing Spinner overlay */
+        .processing-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(9, 9, 11, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .processing-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-primary);
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        .processing-text {
+            font-weight: 500;
+            color: var(--accent-primary);
+            letter-spacing: 0.05em;
+            animation: pulseText 1.5s ease-in-out infinite;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            display: none;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            height: 100%;
+        }
+
+        .app-card.has-result .results-panel {
+            display: flex;
+            animation: slideLeft 0.5s ease-out forwards;
+        }
+
+        .results-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .results-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .stat-badge strong {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .detections-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Custom Scrollbar */
+        .detections-list::-webkit-scrollbar { width: 4px; }
+        .detections-list::-webkit-scrollbar-track { background: transparent; }
+        .detections-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .detections-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        .detection-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .detection-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .det-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .det-label {
+            font-weight: 600;
+            text-transform: capitalize;
+            color: #fff;
+        }
+
+        .det-percent {
+            font-variant-numeric: tabular-nums;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .progress-track {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            border-radius: 2px;
+            transition: width 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* Confidence coloring */
+        .conf-high .progress-fill { background: var(--success); box-shadow: 0 0 10px var(--success-bg); }
+        .conf-high .det-percent { color: var(--success); }
+        .conf-med .progress-fill { background: var(--warning); box-shadow: 0 0 10px var(--warning-bg); }
+        .conf-med .det-percent { color: var(--warning); }
+        .conf-low .progress-fill { background: var(--danger); box-shadow: 0 0 10px var(--danger-bg); }
+        .conf-low .det-percent { color: var(--danger); }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+            outline: none;
+            width: 100%;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: #fff;
+            box-shadow: 0 4px 14px var(--accent-glow);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* --- Webcam Tab --- */
+        .webcam-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .video-wrapper {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        .stream-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .stream-image.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .video-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            gap: 1rem;
+            z-index: 5;
+            transition: opacity 0.3s;
+        }
+
+        .video-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .video-overlay i {
+            width: 48px;
+            height: 48px;
+            opacity: 0.5;
+        }
+
+        .fps-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--accent-primary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            z-index: 10;
+            display: none;
+        }
+
+        .error-message {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 20;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+
+        .webcam-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        /* Animations */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideLeft {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulseText {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Responsive Flow */
+        @media (max-width: 900px) {
+            .app-card.has-result .upload-grid {
+                grid-template-columns: 1fr;
+            }
+            .drop-zone {
+                min-height: 300px;
+            }
+            .results-panel {
+                height: auto;
+                max-height: 500px;
+            }
+        }
+        @media (max-width: 600px) {
+            header {
+                padding: 1rem;
+            }
+            main {
+                padding: 1rem;
+            }
+            .hero-text h1 {
+                font-size: 2rem;
+            }
+            .tab-btn {
+                padding: 1rem;
+                flex: 1;
+                justify-content: center;
+            }
+            .tab-content {
+                padding: 1.5rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <i data-feather="cpu" class="logo-icon"></i>
+            <span>Vision<span style="font-weight: 300; opacity: 0.8">AI</span></span>
+        </div>
+        <div class="status-badge" id="backendStatus">
+            <div class="status-dot"></div>
+            <span id="backendStatusText">Checking connection...</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="hero-text">
+            <h1>Intelligent Object Detection</h1>
+            <p>Upload an image or start the webcam to detect objects in real-time powered by YOLOv8.</p>
+        </div>
+
+        <div class="app-card" id="appCard">
+            <!-- Navigation Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-target="tab-image">
+                    <i data-feather="image"></i> Image Analysis
+                </button>
+                <button class="tab-btn" data-target="tab-webcam">
+                    <i data-feather="video"></i> Live Stream
+                </button>
+            </div>
+
+            <!-- TAB 1: Image Upload -->
+            <div class="tab-content active" id="tab-image">
+                <div class="upload-grid">
+                    <!-- Left: Drop Zone -->
+                    <div class="drop-zone" id="dropZone">
+                        <div class="upload-icon" id="dropIcon">
+                            <i data-feather="upload-cloud"></i>
+                        </div>
+                        <div class="drop-text" id="dropText">
+                            <h3>Drag & Drop Image</h3>
+                            <p>or <span class="browse">browse files</span></p>
+                            <p style="font-size: 0.8rem; margin-top: 0.75rem; opacity: 0.5;">JPEG, PNG, WEBP up to 10MB</p>
+                        </div>
+                        
+                        <input type="file" class="file-input" id="fileInput" accept="image/jpeg, image/png, image/webp">
+                        
+                        <!-- Preview Base / Annotated Image -->
+                        <img id="imagePreview" class="image-preview" alt="Preview Image">
+                        
+                        <!-- Processing Spinner -->
+                        <div class="processing-overlay" id="processingOverlay">
+                            <div class="spinner"></div>
+                            <div class="processing-text">Analyzing Image...</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Results Panel -->
+                    <div class="results-panel" id="resultsPanel">
+                        <div class="results-header">
+                            <h3><i data-feather="bar-chart-2"></i> Detection Results</h3>
+                            <div class="stats-row">
+                                <span class="stat-badge">
+                                    <i data-feather="box" style="width: 14px"></i>
+                                    <strong id="statCount">0</strong> objects
+                                </span>
+                                <span class="stat-badge">
+                                    <i data-feather="zap" style="width: 14px; color: var(--warning)"></i>
+                                    <strong id="statTime">0 ms</strong>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="detections-list" id="detectionsList">
+                            <!-- Items injected via JS -->
+                        </div>
+
+                        <div style="display:flex; gap:0.75rem;">
+                            <button class="btn btn-primary" id="btnDownload" style="flex:1; max-width: 220px;">
+                                <i data-feather="download"></i> Download Annotated
+                            </button>
+                            <button class="btn btn-outline" id="btnReset" style="flex:1; max-width: 220px;">
+                                <i data-feather="refresh-cw"></i> Upload New Image
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Live Webcam -->
+            <div class="tab-content" id="tab-webcam">
+                <div class="webcam-container">
+                    <div class="video-wrapper">
+                        <!-- Default Overlay -->
+                        <div class="video-overlay" id="videoOverlay">
+                            <i data-feather="camera-off"></i>
+                            <p>Camera feed is inactive</p>
+                        </div>
+                        
+                        <!-- Stream -->
+                        <img id="streamImage" class="stream-image" alt="Live Feed">
+                        
+                        <!-- Metrics & Errors -->
+                        <div class="fps-badge" id="fpsBadge">FPS: 0</div>
+                        <div class="error-message" id="streamError"></div>
+                    </div>
+
+                    <div class="webcam-controls">
+                        <button class="btn btn-primary" id="btnStart" style="max-width: 200px;">
+                            <i data-feather="play"></i> Start Camera
+                        </button>
+                        <button class="btn btn-danger" id="btnStop" disabled style="max-width: 200px;">
+                            <i data-feather="square"></i> Stop Stream
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize Feather Icons
+        feather.replace();
+
+        // Use relative API base so the frontend works when served from the same origin
+        const API_BASE = 'http://localhost:8000';
+
+        // --- Health Check ---
+        async function checkBackend() {
+            const badge = document.getElementById('backendStatus');
+            const text = document.getElementById('backendStatusText');
+            try {
+                const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+                if (res.ok) {
+                    badge.classList.remove('offline');
+                    text.textContent = 'Backend Online';
+                } else {
+                    throw new Error('Not OK');
+                }
+            } catch (err) {
+                badge.classList.add('offline');
+                text.textContent = 'Backend Offline';
+            }
+        }
+        
+        // Initial check and periodic polling
+        checkBackend();
+        setInterval(checkBackend, 10000);
+
+        // --- Tabs Logic ---
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target).classList.add('active');
+
+                // Stop webcam if switching away
+                if (tab.dataset.target !== 'tab-webcam' && isStreaming) {
+                    stopWebcam();
+                }
+            });
+        });
+
+        // --- Tab 1: Image Upload ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const processingOverlay = document.getElementById('processingOverlay');
+        const appCard = document.getElementById('appCard');
+        const statCount = document.getElementById('statCount');
+        const statTime = document.getElementById('statTime');
+        const detectionsList = document.getElementById('detectionsList');
+        const btnReset = document.getElementById('btnReset');
+        const btnDownload = document.getElementById('btnDownload');
+        
+        // Drag Events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); });
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                if (!dropZone.classList.contains('viewing-result')) dropZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'));
+        });
+
+        dropZone.addEventListener('drop', e => {
+            if (dropZone.classList.contains('viewing-result')) return;
+            const file = e.dataTransfer.files[0];
+            if (file && validateFile(file)) processFile(file);
+        });
+
+        dropZone.addEventListener('click', () => {
+            if (!dropZone.classList.contains('viewing-result')) fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function() {
+            if (this.files[0] && validateFile(this.files[0])) processFile(this.files[0]);
+        });
+
+        function validateFile(file) {
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                alert('Invalid file format. Please upload JPG, PNG, or WEBP.');
+                return false;
+            }
+            return true;
+        }
+
+        function processFile(file) {
+            // Read file for immediate local preview
+            const reader = new FileReader();
+            reader.onload = e => {
+                // UI switch to preview mode
+                document.getElementById('dropIcon').style.display = 'none';
+                document.getElementById('dropText').style.display = 'none';
+                imagePreview.src = e.target.result;
+                imagePreview.classList.add('visible');
+                
+                // Upload
+                uploadToAPI(file);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function uploadToAPI(file) {
+            processingOverlay.classList.add('active');
+            
+            const formData = new FormData();
+            formData.append('image', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/detect/image`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                showResults(data);
+
+            } catch (err) {
+                console.error(err);
+                alert('Failed to process image. Ensure the backend is running and accessible.');
+                resetUpload();
+            } finally {
+                processingOverlay.classList.remove('active');
+            }
+        }
+
+        function showResults(data) {
+            // Structural changes
+            dropZone.classList.add('viewing-result');
+            appCard.classList.add('has-result');
+
+            // Replace preview with annotated image
+            if (data.annotated_image) {
+                imagePreview.style.opacity = '0';
+                setTimeout(() => {
+                    imagePreview.src = `data:image/jpeg;base64,${data.annotated_image}`;
+                    imagePreview.style.opacity = '1';
+                }, 200);
+            }
+
+            // Update stats
+            statCount.textContent = data.count || (data.detections ? data.detections.length : 0);
+            statTime.textContent = (data.inference_ms || 0).toFixed(1) + ' ms';
+
+            // Update list
+            detectionsList.innerHTML = '';
+            
+            if (!data.detections || data.detections.length === 0) {
+                detectionsList.innerHTML = `
+                    <div style="text-align:center; padding: 2rem 1rem; color: var(--text-secondary);">
+                        <i data-feather="info" style="margin-bottom: 0.5rem"></i>
+                        <p>No objects detected in this image.</p>
+                    </div>`;
+                feather.replace();
+                return;
+            }
+
+            // Sort by confidence
+            const sorted = data.detections.sort((a,b) => b.confidence - a.confidence);
+            
+            sorted.forEach((det, index) => {
+                const conf = det.confidence;
+                const percent = (conf * 100).toFixed(1);
+                
+                let themeClass = 'conf-low';
+                if (conf >= 0.70) themeClass = 'conf-high';
+                else if (conf >= 0.40) themeClass = 'conf-med';
+
+                const item = document.createElement('div');
+                item.className = `detection-item ${themeClass}`;
+                item.style.animation = `slideUp 0.3s ease-out ${index * 0.05}s both`;
+                
+                item.innerHTML = `
+                    <div class="det-header">
+                        <span class="det-label">${det.label}</span>
+                        <span class="det-percent">${percent}%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill"></div>
+                    </div>
+                `;
+                
+                detectionsList.appendChild(item);
+
+                // Animate bars
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        const fill = item.querySelector('.progress-fill');
+                        if (fill) fill.style.width = `${percent}%`;
+                    }, 50);
+                });
+            });
+        }
+
+        function resetUpload() {
+            fileInput.value = '';
+            dropZone.classList.remove('viewing-result');
+            appCard.classList.remove('has-result');
+            
+            imagePreview.classList.remove('visible');
+            setTimeout(() => {
+                imagePreview.src = '';
+                document.getElementById('dropIcon').style.display = 'flex';
+                document.getElementById('dropText').style.display = 'block';
+            }, 300);
+        }
+
+        btnReset.addEventListener('click', resetUpload);
+
+        // Download annotated image
+        if (btnDownload) {
+            btnDownload.addEventListener('click', () => {
+                const src = imagePreview.src;
+                if (!src) {
+                    alert('No image available to download.');
+                    return;
+                }
+
+                // Create an anchor and trigger download
+                const a = document.createElement('a');
+                a.href = src;
+                // Prefer JPEG extension; if data URL includes type, browser will use it
+                a.download = 'annotated.jpg';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            });
+        }
+
+        // --- Tab 2: Webcam Stream ---
+        const btnStart = document.getElementById('btnStart');
+        const btnStop = document.getElementById('btnStop');
+        const streamImage = document.getElementById('streamImage');
+        const videoOverlay = document.getElementById('videoOverlay');
+        const fpsBadge = document.getElementById('fpsBadge');
+        const streamError = document.getElementById('streamError');
+
+        let evtSource = null;
+        let isStreaming = false;
+        let frameCount = 0;
+        let fpsTimer = null;
+
+        btnStart.addEventListener('click', startWebcam);
+        btnStop.addEventListener('click', stopWebcam);
+
+        function startWebcam() {
+            if (isStreaming) return;
+            
+            isStreaming = true;
+            btnStart.disabled = true;
+            btnStop.disabled = false;
+            
+            videoOverlay.classList.add('hidden');
+            streamError.style.display = 'none';
+            fpsBadge.style.display = 'block';
+            streamImage.classList.add('active');
+
+            // FPS Calculation
+            frameCount = 0;
+            fpsBadge.textContent = 'FPS: ...';
+            fpsTimer = setInterval(() => {
+                fpsBadge.textContent = `FPS: ${frameCount}`;
+                frameCount = 0;
+            }, 1000);
+
+            try {
+                evtSource = new EventSource(`${API_BASE}/detect/webcam`);
+                
+                evtSource.onmessage = (event) => {
+                    if (event.data.startsWith('ERROR:')) {
+                        showStreamError(event.data.replace('ERROR:', ''));
+                        return;
+                    }
+                    frameCount++;
+                    streamImage.src = `data:image/jpeg;base64,${event.data}`;
+                };
+
+                evtSource.onerror = (err) => {
+                    console.error("EventSource error:", err);
+                    showStreamError("Connection lost. Retrying or backend down.");
+                };
+            } catch (err) {
+                showStreamError("Failed to initiate stream.");
+            }
+        }
+
+        function stopWebcam() {
+            if (!isStreaming) return;
+            
+            if (evtSource) {
+                evtSource.close();
+                evtSource = null;
+            }
+            clearInterval(fpsTimer);
+
+            isStreaming = false;
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+            
+            videoOverlay.classList.remove('hidden');
+            fpsBadge.style.display = 'none';
+            streamImage.classList.remove('active');
+            streamImage.src = '';
+            streamError.style.display = 'none';
+        }
+
+        function showStreamError(msg) {
+            stopWebcam();
+            streamError.textContent = msg;
+            streamError.style.display = 'block';
+            setTimeout(() => { streamError.style.display = 'none'; }, 5000);
+        }
+
+    </script>
+</body>
+</html>

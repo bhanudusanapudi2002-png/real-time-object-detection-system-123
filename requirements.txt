@@ -1,0 +1,23 @@
+# Core vision & ML libraries
+opencv-python>=4.8.0          # Computer vision operations
+ultralytics>=8.0.0            # YOLOv8 model interface
+torch>=2.0.0                  # PyTorch deep learning backend
+torchvision>=0.15.0           # Vision utilities for PyTorch
+
+# Utility
+numpy>=1.24.0                 # Array/matrix operations
+Pillow>=9.5.0                 # Image I/O helpers
+
+duckduckgo-search>=5.0.0      # Image scraping (no API key needed)
+transformers>=4.35.0          # CLIP zero-shot label verification
+PyYAML>=6.0                   # Dataset YAML config
+tqdm>=4.65.0                  # Progress bars
+matplotlib>=3.7.0             # Training curve plots
+seaborn>=0.12.0               # Confusion matrix plots
+scipy>=1.10.0                 # Metrics helpers
+
+# Web / API
+fastapi==0.115.6              # FastAPI framework (pinned to installed version)
+uvicorn==0.34.0               # ASGI server (pinned to installed version)
+python-multipart==0.0.6       # multipart form parser (pinned to installed version)
+ 
