@@ -3,1155 +3,1220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vision AI | Object Detection</title>
-    <!-- Modern Font: Inter -->
+    <title>VisionAI | Real-Time Object Detection</title>
+    <meta name="description" content="Real-time object detection powered by YOLOv8 and COCO-SSD. Upload images or use your webcam for live detection.">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Feather Icons for lightweight SVGs -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
 
-    <style>
-        /* CSS Variables for Theme */
-        :root {
-            /* Deeper dark backgrounds */
-            --bg-body: #09090b; /* Very dark zinc */
-            --bg-card: #18181b; /* slightly lighter zinc */
-            --bg-hover: #27272a;
-            
-            /* Accents: vibrant violet/blue */
-            --accent-primary: #8b5cf6; /* violet-500 */
-            --accent-hover: #7c3aed;   /* violet-600 */
-            --accent-glow: rgba(139, 92, 246, 0.25);
-            --accent-border: rgba(139, 92, 246, 0.4);
-            
-            /* Text colors */
-            --text-primary: #fafafa;
-            --text-secondary: #a1a1aa;
-            
-            /* Semantic Colors */
-            --success: #10b981;
-            --success-bg: rgba(16, 185, 129, 0.1);
-            --warning: #f59e0b;
-            --warning-bg: rgba(245, 158, 11, 0.1);
-            --danger: #ef4444;
-            --danger-bg: rgba(239, 68, 68, 0.1);
+    <!-- TensorFlow.js + COCO-SSD for in-browser detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 
-            --border-color: #27272a;
-            --border-radius: 16px;
-            --transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    <style>
+        /* ── Design Tokens ─────────────────────────────────── */
+        :root {
+            --bg-body:          #07070a;
+            --bg-card:          #111115;
+            --bg-surface:       #18181e;
+            --bg-hover:         #202028;
+            --accent:           #7c3aed;
+            --accent-bright:    #9f67ff;
+            --accent-hover:     #6d28d9;
+            --accent-glow:      rgba(124, 58, 237, 0.28);
+            --accent-border:    rgba(124, 58, 237, 0.45);
+            --green:            #10b981;
+            --green-bg:         rgba(16, 185, 129, 0.1);
+            --green-border:     rgba(16, 185, 129, 0.25);
+            --amber:            #f59e0b;
+            --amber-bg:         rgba(245, 158, 11, 0.1);
+            --red:              #ef4444;
+            --red-bg:           rgba(239, 68, 68, 0.1);
+            --red-border:       rgba(239, 68, 68, 0.3);
+            --text-1:           #f4f4f5;
+            --text-2:           #a1a1aa;
+            --text-3:           #71717a;
+            --border:           rgba(255, 255, 255, 0.07);
+            --border-bright:    rgba(255, 255, 255, 0.14);
+            --radius-lg:        18px;
+            --radius-md:        12px;
+            --radius-sm:        8px;
+            --ease:             cubic-bezier(0.22, 1, 0.36, 1);
+            --shadow-card:      0 24px 60px rgba(0, 0, 0, 0.5);
+            --shadow-glow:      0 0 40px var(--accent-glow);
         }
 
-        * {
+        *, *::before, *::after {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: 'Inter', sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
+        /* ── Body & Background ─────────────────────────────── */
         body {
             background-color: var(--bg-body);
-            color: var(--text-primary);
+            color: var(--text-1);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at top right, var(--accent-glow) 0%, transparent 40%),
-                radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 110% -10%, rgba(124,58,237,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at -10% 110%, rgba(16,185,129,0.1) 0%, transparent 60%);
             background-attachment: fixed;
         }
 
-        /* Navbar / Header */
+        /* ── Header ────────────────────────────────────────── */
         header {
-            padding: 1.5rem 2rem;
+            padding: 1.25rem 2rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            background: rgba(9, 9, 11, 0.85); /* <-- ADDED BACKGROUND */
-            
-           
+            border-bottom: 1px solid var(--border);
+            background: rgba(7, 7, 10, 0.8);
+            backdrop-filter: blur(16px);
+            position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .logo-area {
+        .logo {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
+            gap: 0.65rem;
+        }
+        .logo-icon-wrap {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+        .logo-icon-wrap svg { width: 18px; height: 18px; color: #fff; }
+        .logo-text {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #fff 40%, var(--accent-bright) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .logo-icon {
-            color: var(--accent-primary);
-        }
-
+        /* Backend status badge */
         .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.4rem 0.8rem;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: inline-flex; align-items: center; gap: 0.45rem;
+            padding: 0.35rem 0.9rem;
             border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--success);
-            transition: var(--transition);
+            font-size: 0.82rem; font-weight: 500;
+            border: 1px solid var(--green-border);
+            background: var(--green-bg);
+            color: var(--green);
+            transition: all 0.4s var(--ease);
         }
-
-        .status-badge.offline {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: rgba(239, 68, 68, 0.2);
-            color: var(--danger);
-        }
-
+        .status-badge.offline { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+        .status-badge.loading { background: var(--amber-bg); border-color: rgba(245,158,11,.25); color: var(--amber); }
         .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: currentColor;
+            width: 7px; height: 7px;
             border-radius: 50%;
-            box-shadow: 0 0 8px currentColor;
+            background: currentColor;
+            box-shadow: 0 0 6px currentColor;
         }
+        .status-dot.pulse { animation: pulseDot 1.4s ease-in-out infinite; }
 
-        /* Main Container */
+        /* ── Main Layout ───────────────────────────────────── */
         main {
             flex: 1;
-            padding: 2rem;
+            padding: 2.5rem 2rem;
             display: flex;
             flex-direction: column;
             align-items: center;
-            max-width: 1200px;
+            max-width: 1240px;
             margin: 0 auto;
             width: 100%;
+            gap: 2rem;
         }
 
-        .hero-text {
+        /* ── Hero ──────────────────────────────────────────── */
+        .hero {
             text-align: center;
-            margin-bottom: 2rem;
-            animation: slideDown 0.6s ease-out;
+            animation: slideDown 0.6s var(--ease) both;
         }
-
-        .hero-text h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
-            /* Ensure the gradient is clipped to the text with vendor and standard properties */
+        .hero-eyebrow {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            background: rgba(124,58,237,0.1);
+            border: 1px solid var(--accent-border);
+            color: var(--accent-bright);
+            padding: 0.3rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.8rem; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            margin-bottom: 1.1rem;
+        }
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            line-height: 1.1;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #ffffff 0%, #d4d4d8 100%);
             -webkit-background-clip: text;
             background-clip: text;
-            /* Make the text itself transparent so the gradient shows through */
             -webkit-text-fill-color: transparent;
-            color: transparent;
-            /* Inline-block helps some browsers apply background-clip correctly */
-            display: inline-block;
         }
-
-        .hero-text p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            max-width: 600px;
+        .hero p {
+            color: var(--text-2);
+            font-size: 1.05rem;
+            max-width: 560px;
             margin: 0 auto;
+            line-height: 1.6;
         }
 
-        /* Main App Card */
+        /* ── App Card ──────────────────────────────────────── */
         .app-card {
             width: 100%;
             background: var(--bg-card);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: var(--border-radius);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            animation: slideUp 0.6s ease-out;
+            animation: slideUp 0.65s var(--ease) 0.1s both;
         }
 
-        /* Tabs */
+        /* ── Tabs ──────────────────────────────────────────── */
         .tabs {
             display: flex;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            background: rgba(255, 255, 255, 0.02);
-            padding: 0 1rem;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border);
+            padding: 0 1.25rem;
+            gap: 0.25rem;
         }
-
         .tab-btn {
-            padding: 1.25rem 1.5rem;
+            padding: 1.1rem 1.4rem;
             background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 1rem;
-            font-weight: 500;
+            border: none; outline: none;
+            color: var(--text-2);
+            font-size: 0.95rem; font-weight: 500;
             cursor: pointer;
-            transition: var(--transition);
+            transition: color 0.25s var(--ease);
             position: relative;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            display: flex; align-items: center; gap: 0.5rem;
         }
-
-        .tab-btn:hover {
-            color: var(--text-primary);
-        }
-
-        .tab-btn.active {
-            color: var(--accent-primary);
-        }
-
+        .tab-btn svg { width: 16px; height: 16px; }
+        .tab-btn:hover { color: var(--text-1); }
+        .tab-btn.active { color: var(--accent-bright); }
         .tab-btn.active::after {
             content: '';
             position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: var(--accent-primary);
-            box-shadow: 0 -2px 10px var(--accent-glow);
+            bottom: -1px; left: 0;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-bright));
             border-radius: 2px 2px 0 0;
+            box-shadow: 0 -2px 12px var(--accent-glow);
         }
 
-        .tab-content {
-            display: none;
-            padding: 2rem;
-        }
+        /* ── Tab Content ───────────────────────────────────── */
+        .tab-content { display: none; padding: 2rem; }
+        .tab-content.active { display: block; animation: fadeIn 0.35s var(--ease); }
 
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.4s ease-out;
-        }
-
-        /* --- Image Upload Tab --- */
+        /* ── Image Upload Tab ──────────────────────────────── */
         .upload-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 2rem;
-            transition: var(--transition);
         }
-        
-        /* When result is present, split layout on large screens */
-        .app-card.has-result .upload-grid {
-            grid-template-columns: 1fr 380px;
-        }
+        .app-card.has-result .upload-grid { grid-template-columns: 1fr 380px; }
 
+        /* Drop zone */
         .drop-zone {
-            background: rgba(255, 255, 255, 0.02);
-            border: 2px dashed rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: rgba(255,255,255,0.015);
+            border: 2px dashed rgba(255,255,255,0.1);
+            border-radius: var(--radius-md);
             padding: 4rem 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
             text-align: center;
             cursor: pointer;
-            transition: var(--transition);
+            transition: all 0.3s var(--ease);
             position: relative;
-            min-height: 400px;
+            min-height: 420px;
             overflow: hidden;
         }
-
         .drop-zone:hover:not(.viewing-result) {
-            border-color: rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.03);
         }
-
         .drop-zone.dragover:not(.viewing-result) {
-            border-color: var(--accent-primary);
-            background: var(--accent-glow);
+            border-color: var(--accent-bright);
+            background: rgba(124,58,237,0.07);
             transform: scale(0.99);
         }
-
         .drop-zone.viewing-result {
-            padding: 0;
-            border-style: solid;
-            border-color: rgba(255,255,255,0.08);
-            cursor: default;
-            background: #000; /* Black bg for images */
+            padding: 0; border-style: solid;
+            border-color: var(--border); cursor: default; background: #000;
         }
 
         .upload-icon {
-            width: 64px;
-            height: 64px;
-            background: rgba(139, 92, 246, 0.1);
-            color: var(--accent-primary);
+            width: 72px; height: 72px;
+            background: rgba(124,58,237,0.1);
+            color: var(--accent-bright);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             margin-bottom: 1.5rem;
-            box-shadow: 0 0 20px var(--accent-glow);
+            box-shadow: 0 0 30px var(--accent-glow);
+            transition: transform 0.3s var(--ease);
         }
+        .drop-zone:hover:not(.viewing-result) .upload-icon { transform: translateY(-4px); }
+        .upload-icon svg { width: 30px; height: 30px; }
 
-        .drop-text h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
+        .drop-text h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .drop-text p { color: var(--text-2); font-size: 0.92rem; }
+        .drop-text .browse { color: var(--accent-bright); text-decoration: underline; text-underline-offset: 3px; }
+        .file-input { display: none; }
 
-        .drop-text p {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-
-        .drop-text span.browse {
-            color: var(--accent-primary);
-            text-decoration: underline;
-            text-underline-offset: 4px;
-        }
-
-        .file-input {
-            display: none;
-        }
-
+        /* Preview image */
         .image-preview {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
             object-fit: contain;
             opacity: 0;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.5s var(--ease);
             pointer-events: none;
             z-index: 5;
         }
+        .image-preview.visible { opacity: 1; }
 
-        .image-preview.visible {
-            opacity: 1;
-        }
-
-        /* Processing Spinner overlay */
+        /* Processing overlay */
         .processing-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(9, 9, 11, 0.8);
-            backdrop-filter: blur(4px);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            position: absolute; inset: 0;
+            background: rgba(7,7,10,0.82);
+            backdrop-filter: blur(5px);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 1rem;
             z-index: 10;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s var(--ease);
         }
+        .processing-overlay.active { opacity: 1; pointer-events: all; }
 
-        .processing-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
+        /* Spinner */
         .spinner {
-            width: 48px;
-            height: 48px;
-            border: 3px solid rgba(255,255,255,0.1);
+            width: 48px; height: 48px;
+            border: 3px solid rgba(255,255,255,0.08);
             border-radius: 50%;
-            border-top-color: var(--accent-primary);
-            animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
+            border-top-color: var(--accent-bright);
+            animation: spin 0.8s linear infinite;
         }
-
+        .spinner.sm { width: 32px; height: 32px; border-width: 2.5px; }
         .processing-text {
-            font-weight: 500;
-            color: var(--accent-primary);
-            letter-spacing: 0.05em;
-            animation: pulseText 1.5s ease-in-out infinite;
+            font-size: 0.95rem; font-weight: 600;
+            color: var(--accent-bright);
+            letter-spacing: 0.03em;
+            animation: pulseText 1.4s ease-in-out infinite;
         }
+        .processing-sub { font-size: 0.8rem; color: var(--text-2); }
 
-        /* Results Panel */
+        /* Results panel */
         .results-panel {
-            display: none;
-            flex-direction: column;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            display: none; flex-direction: column;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             padding: 1.5rem;
             height: 100%;
         }
+        .app-card.has-result .results-panel { display: flex; animation: slideLeft 0.45s var(--ease) both; }
 
-        .app-card.has-result .results-panel {
-            display: flex;
-            animation: slideLeft 0.5s ease-out forwards;
-        }
-
-        .results-header {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-
+        .results-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
         .results-header h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            font-size: 1rem; font-weight: 700;
+            display: flex; align-items: center; gap: 0.5rem;
             margin-bottom: 0.75rem;
         }
+        .results-header h3 svg { width: 16px; height: 16px; color: var(--accent-bright); }
 
-        .stats-row {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
+        .stats-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
         .stat-badge {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
             padding: 0.4rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem; font-weight: 500;
+            color: var(--text-2);
+            display: flex; align-items: center; gap: 0.35rem;
         }
+        .stat-badge svg { width: 13px; height: 13px; }
+        .stat-badge strong { color: var(--text-1); font-size: 0.92rem; }
 
-        .stat-badge strong {
-            color: var(--text-primary);
-            font-size: 0.95rem;
-        }
-
+        /* Detections list */
         .detections-list {
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 0.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
+            flex: 1; overflow-y: auto;
+            padding-right: 0.4rem;
+            display: flex; flex-direction: column; gap: 0.65rem;
+            margin-bottom: 1.25rem;
         }
-
-        /* Custom Scrollbar */
-        .detections-list::-webkit-scrollbar { width: 4px; }
+        .detections-list::-webkit-scrollbar { width: 3px; }
         .detections-list::-webkit-scrollbar-track { background: transparent; }
-        .detections-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-        .detections-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .detections-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
 
         .detection-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            transition: var(--transition);
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 0.7rem 1rem;
+            display: flex; flex-direction: column; gap: 0.45rem;
+            transition: all 0.25s var(--ease);
         }
+        .detection-item:hover { background: rgba(255,255,255,0.045); transform: translateY(-1px); }
+        .det-header { display: flex; justify-content: space-between; align-items: center; }
+        .det-label { font-weight: 700; font-size: 0.88rem; text-transform: capitalize; }
+        .det-percent { font-variant-numeric: tabular-nums; font-size: 0.82rem; font-weight: 600; }
+        .progress-track { height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; position: relative; }
+        .progress-fill { position: absolute; left: 0; top: 0; height: 100%; width: 0%; border-radius: 2px; transition: width 1.1s var(--ease); }
+        .conf-high .progress-fill { background: var(--green); } .conf-high .det-percent { color: var(--green); }
+        .conf-med  .progress-fill { background: var(--amber); } .conf-med  .det-percent { color: var(--amber); }
+        .conf-low  .progress-fill { background: var(--red);   } .conf-low  .det-percent { color: var(--red);   }
 
-        .detection-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            transform: translateY(-2px);
-        }
-
-        .det-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-        }
-
-        .det-label {
-            font-weight: 600;
-            text-transform: capitalize;
-            color: #fff;
-        }
-
-        .det-percent {
-            font-variant-numeric: tabular-nums;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-
-        .progress-track {
-            height: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 2px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-fill {
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 0%;
-            border-radius: 2px;
-            transition: width 1s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-
-        /* Confidence coloring */
-        .conf-high .progress-fill { background: var(--success); box-shadow: 0 0 10px var(--success-bg); }
-        .conf-high .det-percent { color: var(--success); }
-        .conf-med .progress-fill { background: var(--warning); box-shadow: 0 0 10px var(--warning-bg); }
-        .conf-med .det-percent { color: var(--warning); }
-        .conf-low .progress-fill { background: var(--danger); box-shadow: 0 0 10px var(--danger-bg); }
-        .conf-low .det-percent { color: var(--danger); }
-
+        /* ── Buttons ───────────────────────────────────────── */
         .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 500;
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.7rem 1.4rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem; font-weight: 600;
             cursor: pointer;
-            transition: var(--transition);
-            border: none;
-            outline: none;
+            transition: all 0.25s var(--ease);
+            border: none; outline: none;
             width: 100%;
         }
-
+        .btn svg { width: 16px; height: 16px; }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-bright));
+            color: #fff;
+            box-shadow: 0 4px 18px var(--accent-glow);
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px var(--accent-glow);
+            filter: brightness(1.1);
+        }
         .btn-outline {
             background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
+            border: 1px solid var(--border-bright);
+            color: var(--text-1);
         }
-
-        .btn-outline:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.2);
+        .btn-outline:hover:not(:disabled) {
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.25);
         }
-
-        .btn-primary {
-            background: var(--accent-primary);
-            color: #fff;
-            box-shadow: 0 4px 14px var(--accent-glow);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px var(--accent-glow);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
         .btn-danger {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            background: var(--red-bg);
+            border: 1px solid var(--red-border);
+            color: var(--red);
         }
+        .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.2); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; filter: none !important; }
 
-        .btn-danger:hover:not(:disabled) {
-            background: rgba(239, 68, 68, 0.2);
-        }
-
-        /* --- Webcam Tab --- */
-        .webcam-container {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
+        /* ── Webcam Tab ────────────────────────────────────── */
+        .webcam-container { display: flex; flex-direction: column; gap: 1.25rem; }
 
         .video-wrapper {
             width: 100%;
             aspect-ratio: 16/9;
             background: #000;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
             position: relative;
             overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
         }
 
-        .stream-image {
-            width: 100%;
-            height: 100%;
+        /* Hidden video element */
+        #webcamVideo {
+            position: absolute;
+            width: 100%; height: 100%;
             object-fit: cover;
-            display: none;
-            opacity: 0;
-            transition: opacity 0.3s;
+            opacity: 0; pointer-events: none;
         }
 
-        .stream-image.active {
-            display: block;
-            opacity: 1;
+        /* Canvas shows annotated frames */
+        #detectionCanvas {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: none; z-index: 3;
         }
+        #detectionCanvas.active { display: block; }
 
+        /* Idle state overlay */
         .video-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-            gap: 1rem;
-            z-index: 5;
-            transition: opacity 0.3s;
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: var(--text-3); gap: 1rem; z-index: 5;
+            transition: opacity 0.4s var(--ease);
+            background: #000;
         }
+        .video-overlay.hidden { opacity: 0; pointer-events: none; }
+        .video-overlay svg { width: 52px; height: 52px; opacity: 0.3; }
+        .video-overlay p { font-size: 0.9rem; }
 
-        .video-overlay.hidden {
-            opacity: 0;
-            pointer-events: none;
+        /* Model loading overlay */
+        .model-loading-overlay {
+            position: absolute; inset: 0;
+            background: rgba(7,7,10,0.93);
+            backdrop-filter: blur(8px);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 1rem;
+            z-index: 8;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s var(--ease);
         }
+        .model-loading-overlay.active { opacity: 1; pointer-events: all; }
+        .model-loading-text { font-weight: 700; font-size: 1rem; color: var(--accent-bright); }
+        .model-loading-sub { font-size: 0.82rem; color: var(--text-2); }
 
-        .video-overlay i {
-            width: 48px;
-            height: 48px;
-            opacity: 0.5;
-        }
-
+        /* HUD overlays */
         .fps-badge {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
+            position: absolute; top: 0.9rem; right: 0.9rem;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
             border: 1px solid rgba(255,255,255,0.1);
-            color: var(--accent-primary);
-            padding: 0.4rem 0.8rem;
+            color: var(--accent-bright);
+            padding: 0.35rem 0.75rem;
             border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.82rem; font-weight: 700;
             font-variant-numeric: tabular-nums;
-            z-index: 10;
-            display: none;
+            z-index: 10; display: none;
         }
+        .live-badge {
+            position: absolute; top: 0.9rem; left: 0.9rem;
+            background: rgba(239,68,68,0.85);
+            color: #fff;
+            padding: 0.28rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.76rem; font-weight: 800;
+            letter-spacing: 0.1em;
+            z-index: 10; display: none;
+            align-items: center; gap: 0.4rem;
+        }
+        .live-badge.active { display: flex; }
+        .live-dot { width: 7px; height: 7px; background: #fff; border-radius: 50%; animation: pulseDot 1s ease-in-out infinite; }
+
+        /* Objects count badge in video */
+        .obj-badge {
+            position: absolute; bottom: 0.9rem; right: 0.9rem;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-1);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.82rem; font-weight: 600;
+            z-index: 10; display: none;
+        }
+        .obj-badge.active { display: block; }
 
         .error-message {
-            position: absolute;
-            bottom: 1rem;
-            left: 50%;
+            position: absolute; bottom: 1rem; left: 50%;
             transform: translateX(-50%);
-            background: rgba(239, 68, 68, 0.9);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            z-index: 20;
-            display: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            white-space: nowrap;
+            background: rgba(239,68,68,0.92);
+            color: #fff; padding: 0.7rem 1.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem; font-weight: 500;
+            z-index: 20; display: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            text-align: center; max-width: 90%;
         }
 
-        .webcam-controls {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
+        .webcam-controls { display: flex; gap: 1rem; justify-content: center; }
 
-        /* Animations */
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Live detections ticker */
+        .live-detections {
+            display: none; flex-wrap: wrap; gap: 0.5rem;
+            padding: 0.9rem 1.1rem;
+            background: rgba(255,255,255,0.018);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            min-height: 52px;
+            align-items: center;
         }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        .live-detections.active { display: flex; }
+        .live-tag {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            background: rgba(124,58,237,0.12);
+            border: 1px solid rgba(124,58,237,0.28);
+            color: var(--accent-bright);
+            padding: 0.28rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.8rem; font-weight: 600;
+            text-transform: capitalize;
+            animation: popIn 0.18s var(--ease);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes slideLeft {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes pulseText {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
+        .live-tag-conf { opacity: 0.65; font-weight: 400; font-size: 0.75rem; }
+        .live-empty { color: var(--text-3); font-size: 0.88rem; }
 
-        /* Responsive Flow */
+        /* Confidence controls row */
+        .conf-row {
+            display: flex; align-items: center; gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.018);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+        }
+        .conf-row label { color: var(--text-2); font-weight: 500; white-space: nowrap; }
+        .conf-row input[type=range] {
+            flex: 1; accent-color: var(--accent-bright);
+            cursor: pointer; height: 4px;
+        }
+        .conf-val { font-weight: 700; color: var(--accent-bright); min-width: 38px; text-align: right; }
+
+        /* ── Animations ────────────────────────────────────── */
+        @keyframes spin        { to { transform: rotate(360deg); } }
+        @keyframes slideDown   { from { opacity:0; transform:translateY(-18px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slideUp     { from { opacity:0; transform:translateY(28px);  } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeIn      { from { opacity:0; } to { opacity:1; } }
+        @keyframes slideLeft   { from { opacity:0; transform:translateX(18px); } to { opacity:1; transform:translateX(0); } }
+        @keyframes pulseText   { 0%,100%{opacity:1;} 50%{opacity:0.55;} }
+        @keyframes pulseDot    { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.45;transform:scale(0.75);} }
+        @keyframes popIn       { from{opacity:0;transform:scale(0.8);} to{opacity:1;transform:scale(1);} }
+
+        /* ── Footer ────────────────────────────────────────── */
+        footer {
+            padding: 1.25rem 2rem;
+            border-top: 1px solid var(--border);
+            background: rgba(7,7,10,0.6);
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-3);
+        }
+        footer span { color: var(--accent-bright); font-weight: 500; }
+
+        /* ── Responsive ────────────────────────────────────── */
         @media (max-width: 900px) {
-            .app-card.has-result .upload-grid {
-                grid-template-columns: 1fr;
-            }
-            .drop-zone {
-                min-height: 300px;
-            }
-            .results-panel {
-                height: auto;
-                max-height: 500px;
-            }
+            .app-card.has-result .upload-grid { grid-template-columns: 1fr; }
+            .drop-zone { min-height: 300px; }
+            .results-panel { height: auto; max-height: 480px; }
         }
         @media (max-width: 600px) {
-            header {
-                padding: 1rem;
-            }
-            main {
-                padding: 1rem;
-            }
-            .hero-text h1 {
-                font-size: 2rem;
-            }
-            .tab-btn {
-                padding: 1rem;
-                flex: 1;
-                justify-content: center;
-            }
-            .tab-content {
-                padding: 1.5rem 1rem;
-            }
+            header { padding: 1rem; }
+            main { padding: 1.25rem 1rem; }
+            .hero h1 { font-size: 2rem; }
+            .tab-btn { padding: 0.9rem; flex: 1; justify-content: center; font-size: 0.88rem; }
+            .tab-content { padding: 1.25rem 1rem; }
+            .webcam-controls { flex-direction: column; align-items: center; }
+            .btn { max-width: 260px; }
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo-area">
-            <i data-feather="cpu" class="logo-icon"></i>
-            <span>Vision<span style="font-weight: 300; opacity: 0.8">AI</span></span>
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<header>
+    <div class="logo">
+        <div class="logo-icon-wrap">
+            <i data-feather="cpu"></i>
         </div>
-        <div class="status-badge" id="backendStatus">
-            <div class="status-dot"></div>
-            <span id="backendStatusText">Checking connection...</span>
+        <span class="logo-text">VisionAI</span>
+    </div>
+    <div class="status-badge" id="backendStatus">
+        <div class="status-dot"></div>
+        <span id="backendStatusText">Checking…</span>
+    </div>
+</header>
+
+<!-- ── Main ────────────────────────────────────────────────────── -->
+<main>
+
+    <!-- Hero -->
+    <div class="hero">
+        <div class="hero-eyebrow">
+            <i data-feather="zap" style="width:13px;height:13px;"></i>
+            Powered by YOLOv8 &amp; COCO-SSD
         </div>
-    </header>
+        <h1>Real-Time Object Detection</h1>
+        <p>Upload an image for server-side analysis, or use your webcam for instant in-browser detection — no backend required.</p>
+    </div>
 
-    <main>
-        <div class="hero-text">
-            <h1>Intelligent Object Detection</h1>
-            <p>Upload an image or start the webcam to detect objects in real-time powered by YOLOv8.</p>
+    <!-- App Card -->
+    <div class="app-card" id="appCard">
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" id="tabImageBtn" data-target="tab-image">
+                <i data-feather="image"></i> Image Analysis
+            </button>
+            <button class="tab-btn" id="tabWebcamBtn" data-target="tab-webcam">
+                <i data-feather="video"></i> Live Camera
+            </button>
         </div>
 
-        <div class="app-card" id="appCard">
-            <!-- Navigation Tabs -->
-            <div class="tabs">
-                <button class="tab-btn active" data-target="tab-image">
-                    <i data-feather="image"></i> Image Analysis
-                </button>
-                <button class="tab-btn" data-target="tab-webcam">
-                    <i data-feather="video"></i> Live Stream
-                </button>
-            </div>
+        <!-- ── TAB 1: Image Upload ─────────────────────────── -->
+        <div class="tab-content active" id="tab-image">
+            <div class="upload-grid">
 
-            <!-- TAB 1: Image Upload -->
-            <div class="tab-content active" id="tab-image">
-                <div class="upload-grid">
-                    <!-- Left: Drop Zone -->
-                    <div class="drop-zone" id="dropZone">
-                        <div class="upload-icon" id="dropIcon">
-                            <i data-feather="upload-cloud"></i>
-                        </div>
-                        <div class="drop-text" id="dropText">
-                            <h3>Drag & Drop Image</h3>
-                            <p>or <span class="browse">browse files</span></p>
-                            <p style="font-size: 0.8rem; margin-top: 0.75rem; opacity: 0.5;">JPEG, PNG, WEBP up to 10MB</p>
-                        </div>
-                        
-                        <input type="file" class="file-input" id="fileInput" accept="image/jpeg, image/png, image/webp">
-                        
-                        <!-- Preview Base / Annotated Image -->
-                        <img id="imagePreview" class="image-preview" alt="Preview Image">
-                        
-                        <!-- Processing Spinner -->
-                        <div class="processing-overlay" id="processingOverlay">
-                            <div class="spinner"></div>
-                            <div class="processing-text">Analyzing Image...</div>
-                        </div>
+                <!-- Drop Zone -->
+                <div class="drop-zone" id="dropZone">
+                    <div class="upload-icon" id="dropIcon">
+                        <i data-feather="upload-cloud"></i>
                     </div>
-
-                    <!-- Right: Results Panel -->
-                    <div class="results-panel" id="resultsPanel">
-                        <div class="results-header">
-                            <h3><i data-feather="bar-chart-2"></i> Detection Results</h3>
-                            <div class="stats-row">
-                                <span class="stat-badge">
-                                    <i data-feather="box" style="width: 14px"></i>
-                                    <strong id="statCount">0</strong> objects
-                                </span>
-                                <span class="stat-badge">
-                                    <i data-feather="zap" style="width: 14px; color: var(--warning)"></i>
-                                    <strong id="statTime">0 ms</strong>
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="detections-list" id="detectionsList">
-                            <!-- Items injected via JS -->
-                        </div>
-
-                        <div style="display:flex; gap:0.75rem;">
-                            <button class="btn btn-primary" id="btnDownload" style="flex:1; max-width: 220px;">
-                                <i data-feather="download"></i> Download Annotated
-                            </button>
-                            <button class="btn btn-outline" id="btnReset" style="flex:1; max-width: 220px;">
-                                <i data-feather="refresh-cw"></i> Upload New Image
-                            </button>
-                        </div>
+                    <div class="drop-text" id="dropText">
+                        <h3>Drag &amp; Drop an Image</h3>
+                        <p>or <span class="browse">browse files</span></p>
+                        <p style="font-size:0.78rem;margin-top:0.7rem;opacity:0.45;">JPEG · PNG · WEBP · up to 10 MB</p>
+                    </div>
+                    <input type="file" class="file-input" id="fileInput" accept="image/jpeg,image/png,image/webp">
+                    <img id="imagePreview" class="image-preview" alt="Preview">
+                    <div class="processing-overlay" id="processingOverlay">
+                        <div class="spinner"></div>
+                        <div class="processing-text" id="processingText">Analyzing Image…</div>
                     </div>
                 </div>
-            </div>
 
-            <!-- TAB 2: Live Webcam -->
-            <div class="tab-content" id="tab-webcam">
-                <div class="webcam-container">
-                    <div class="video-wrapper">
-                        <!-- Default Overlay -->
-                        <div class="video-overlay" id="videoOverlay">
-                            <i data-feather="camera-off"></i>
-                            <p>Camera feed is inactive</p>
+                <!-- Results Panel -->
+                <div class="results-panel" id="resultsPanel">
+                    <div class="results-header">
+                        <h3><i data-feather="bar-chart-2"></i> Detection Results</h3>
+                        <div class="stats-row">
+                            <span class="stat-badge">
+                                <i data-feather="box"></i>
+                                <strong id="statCount">0</strong> objects
+                            </span>
+                            <span class="stat-badge">
+                                <i data-feather="clock" style="color:var(--amber)"></i>
+                                <strong id="statTime">0 ms</strong>
+                            </span>
                         </div>
-                        
-                        <!-- Stream -->
-                        <img id="streamImage" class="stream-image" alt="Live Feed">
-                        
-                        <!-- Metrics & Errors -->
-                        <div class="fps-badge" id="fpsBadge">FPS: 0</div>
-                        <div class="error-message" id="streamError"></div>
                     </div>
-
-                    <div class="webcam-controls">
-                        <button class="btn btn-primary" id="btnStart" style="max-width: 200px;">
-                            <i data-feather="play"></i> Start Camera
+                    <div class="detections-list" id="detectionsList"></div>
+                    <div style="display:flex;gap:0.65rem;">
+                        <button class="btn btn-primary" id="btnDownload" style="flex:1;max-width:220px;">
+                            <i data-feather="download"></i> Download
                         </button>
-                        <button class="btn btn-danger" id="btnStop" disabled style="max-width: 200px;">
-                            <i data-feather="square"></i> Stop Stream
+                        <button class="btn btn-outline" id="btnReset" style="flex:1;max-width:220px;">
+                            <i data-feather="refresh-cw"></i> New Image
                         </button>
                     </div>
                 </div>
+
             </div>
         </div>
-    </main>
 
-    <script>
-        // Initialize Feather Icons
-        feather.replace();
+        <!-- ── TAB 2: Live Webcam ──────────────────────────── -->
+        <div class="tab-content" id="tab-webcam">
+            <div class="webcam-container">
 
-        // Use relative API base so the frontend works when served from the same origin
-        const API_BASE = 'http://localhost:8000';
+                <!-- Video Wrapper -->
+                <div class="video-wrapper" id="videoWrapper">
+                    <video id="webcamVideo" autoplay muted playsinline></video>
+                    <canvas id="detectionCanvas"></canvas>
 
-        // --- Health Check ---
-        async function checkBackend() {
-            const badge = document.getElementById('backendStatus');
-            const text = document.getElementById('backendStatusText');
-            try {
-                const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
-                if (res.ok) {
-                    badge.classList.remove('offline');
-                    text.textContent = 'Backend Online';
-                } else {
-                    throw new Error('Not OK');
-                }
-            } catch (err) {
-                badge.classList.add('offline');
-                text.textContent = 'Backend Offline';
-            }
-        }
-        
-        // Initial check and periodic polling
-        checkBackend();
-        setInterval(checkBackend, 10000);
-
-        // --- Tabs Logic ---
-        const tabs = document.querySelectorAll('.tab-btn');
-        const contents = document.querySelectorAll('.tab-content');
-
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                contents.forEach(c => c.classList.remove('active'));
-                
-                tab.classList.add('active');
-                document.getElementById(tab.dataset.target).classList.add('active');
-
-                // Stop webcam if switching away
-                if (tab.dataset.target !== 'tab-webcam' && isStreaming) {
-                    stopWebcam();
-                }
-            });
-        });
-
-        // --- Tab 1: Image Upload ---
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const imagePreview = document.getElementById('imagePreview');
-        const processingOverlay = document.getElementById('processingOverlay');
-        const appCard = document.getElementById('appCard');
-        const statCount = document.getElementById('statCount');
-        const statTime = document.getElementById('statTime');
-        const detectionsList = document.getElementById('detectionsList');
-        const btnReset = document.getElementById('btnReset');
-        const btnDownload = document.getElementById('btnDownload');
-        
-        // Drag Events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); });
-        });
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                if (!dropZone.classList.contains('viewing-result')) dropZone.classList.add('dragover');
-            });
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'));
-        });
-
-        dropZone.addEventListener('drop', e => {
-            if (dropZone.classList.contains('viewing-result')) return;
-            const file = e.dataTransfer.files[0];
-            if (file && validateFile(file)) processFile(file);
-        });
-
-        dropZone.addEventListener('click', () => {
-            if (!dropZone.classList.contains('viewing-result')) fileInput.click();
-        });
-
-        fileInput.addEventListener('change', function() {
-            if (this.files[0] && validateFile(this.files[0])) processFile(this.files[0]);
-        });
-
-        function validateFile(file) {
-            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-            if (!validTypes.includes(file.type)) {
-                alert('Invalid file format. Please upload JPG, PNG, or WEBP.');
-                return false;
-            }
-            return true;
-        }
-
-        function processFile(file) {
-            // Read file for immediate local preview
-            const reader = new FileReader();
-            reader.onload = e => {
-                // UI switch to preview mode
-                document.getElementById('dropIcon').style.display = 'none';
-                document.getElementById('dropText').style.display = 'none';
-                imagePreview.src = e.target.result;
-                imagePreview.classList.add('visible');
-                
-                // Upload
-                uploadToAPI(file);
-            };
-            reader.readAsDataURL(file);
-        }
-
-        async function uploadToAPI(file) {
-            processingOverlay.classList.add('active');
-            
-            const formData = new FormData();
-            formData.append('image', file);
-
-            try {
-                const response = await fetch(`${API_BASE}/detect/image`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                
-                showResults(data);
-
-            } catch (err) {
-                console.error(err);
-                alert('Failed to process image. Ensure the backend is running and accessible.');
-                resetUpload();
-            } finally {
-                processingOverlay.classList.remove('active');
-            }
-        }
-
-        function showResults(data) {
-            // Structural changes
-            dropZone.classList.add('viewing-result');
-            appCard.classList.add('has-result');
-
-            // Replace preview with annotated image
-            if (data.annotated_image) {
-                imagePreview.style.opacity = '0';
-                setTimeout(() => {
-                    imagePreview.src = `data:image/jpeg;base64,${data.annotated_image}`;
-                    imagePreview.style.opacity = '1';
-                }, 200);
-            }
-
-            // Update stats
-            statCount.textContent = data.count || (data.detections ? data.detections.length : 0);
-            statTime.textContent = (data.inference_ms || 0).toFixed(1) + ' ms';
-
-            // Update list
-            detectionsList.innerHTML = '';
-            
-            if (!data.detections || data.detections.length === 0) {
-                detectionsList.innerHTML = `
-                    <div style="text-align:center; padding: 2rem 1rem; color: var(--text-secondary);">
-                        <i data-feather="info" style="margin-bottom: 0.5rem"></i>
-                        <p>No objects detected in this image.</p>
-                    </div>`;
-                feather.replace();
-                return;
-            }
-
-            // Sort by confidence
-            const sorted = data.detections.sort((a,b) => b.confidence - a.confidence);
-            
-            sorted.forEach((det, index) => {
-                const conf = det.confidence;
-                const percent = (conf * 100).toFixed(1);
-                
-                let themeClass = 'conf-low';
-                if (conf >= 0.70) themeClass = 'conf-high';
-                else if (conf >= 0.40) themeClass = 'conf-med';
-
-                const item = document.createElement('div');
-                item.className = `detection-item ${themeClass}`;
-                item.style.animation = `slideUp 0.3s ease-out ${index * 0.05}s both`;
-                
-                item.innerHTML = `
-                    <div class="det-header">
-                        <span class="det-label">${det.label}</span>
-                        <span class="det-percent">${percent}%</span>
+                    <!-- Idle overlay -->
+                    <div class="video-overlay" id="videoOverlay">
+                        <i data-feather="camera-off"></i>
+                        <p>Camera feed is inactive</p>
+                        <p style="font-size:0.8rem;opacity:0.55;margin-top:-0.5rem;">Detection runs entirely in your browser</p>
                     </div>
-                    <div class="progress-track">
-                        <div class="progress-fill"></div>
+
+                    <!-- Model loading overlay -->
+                    <div class="model-loading-overlay" id="modelLoadingOverlay">
+                        <div class="spinner"></div>
+                        <div class="model-loading-text">Loading AI Model…</div>
+                        <div class="model-loading-sub">Downloading COCO-SSD — one-time only</div>
                     </div>
-                `;
-                
-                detectionsList.appendChild(item);
 
-                // Animate bars
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        const fill = item.querySelector('.progress-fill');
-                        if (fill) fill.style.width = `${percent}%`;
-                    }, 50);
-                });
-            });
+                    <!-- HUD badges -->
+                    <div class="live-badge" id="liveBadge"><div class="live-dot"></div> LIVE</div>
+                    <div class="fps-badge"  id="fpsBadge">FPS: --</div>
+                    <div class="obj-badge"  id="objBadge">0 objects</div>
+                    <div class="error-message" id="streamError"></div>
+                </div>
+
+                <!-- Confidence slider -->
+                <div class="conf-row" id="confRow" style="display:none;">
+                    <label for="confSlider"><i data-feather="sliders" style="width:14px;height:14px;vertical-align:middle;"></i> Min confidence</label>
+                    <input type="range" id="confSlider" min="10" max="90" value="35" step="5">
+                    <span class="conf-val" id="confVal">35%</span>
+                </div>
+
+                <!-- Live detection tags -->
+                <div class="live-detections" id="liveDetections">
+                    <span class="live-empty">Detected objects will appear here…</span>
+                </div>
+
+                <!-- Controls -->
+                <div class="webcam-controls">
+                    <button class="btn btn-primary" id="btnStart" style="max-width:200px;">
+                        <i data-feather="play"></i> Start Camera
+                    </button>
+                    <button class="btn btn-danger" id="btnStop" disabled style="max-width:200px;">
+                        <i data-feather="square"></i> Stop Camera
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </div><!-- /.app-card -->
+</main>
+
+<!-- ── Footer ──────────────────────────────────────────────────── -->
+<footer>
+    Smart Real-Time Object Detection &mdash; <span>YOLOv8</span> backend &amp; <span>COCO-SSD</span> browser inference
+</footer>
+
+<!-- ── Scripts ─────────────────────────────────────────────────── -->
+<script>
+/* ── Bootstrap icons ─────────────────────────────────────────── */
+feather.replace();
+
+const API_BASE = 'http://localhost:8000';
+
+/* ── Backend health check ────────────────────────────────────── */
+async function checkBackend() {
+    const badge = document.getElementById('backendStatus');
+    const text  = document.getElementById('backendStatusText');
+    const dot   = badge.querySelector('.status-dot');
+    try {
+        const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+            badge.className = 'status-badge';
+            text.textContent = 'Backend Online';
+            dot.classList.remove('pulse');
+        } else throw new Error();
+    } catch {
+        badge.className = 'status-badge offline';
+        text.textContent = 'Backend Offline';
+        dot.classList.remove('pulse');
+    }
+}
+checkBackend();
+setInterval(checkBackend, 10000);
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.target).classList.add('active');
+        if (tab.dataset.target !== 'tab-webcam' && isStreaming) stopWebcam();
+    });
+});
+
+/* ── Image Upload Tab ────────────────────────────────────────── */
+const dropZone   = document.getElementById('dropZone');
+const fileInput  = document.getElementById('fileInput');
+const imgPreview = document.getElementById('imagePreview');
+const procOvl    = document.getElementById('processingOverlay');
+const procText   = document.getElementById('processingText');
+const appCard    = document.getElementById('appCard');
+const statCount  = document.getElementById('statCount');
+const statTime   = document.getElementById('statTime');
+const detList    = document.getElementById('detectionsList');
+
+['dragenter','dragover','dragleave','drop'].forEach(e =>
+    dropZone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }));
+['dragenter','dragover'].forEach(e =>
+    dropZone.addEventListener(e, () => { if (!dropZone.classList.contains('viewing-result')) dropZone.classList.add('dragover'); }));
+['dragleave','drop'].forEach(e =>
+    dropZone.addEventListener(e, () => dropZone.classList.remove('dragover')));
+
+dropZone.addEventListener('drop', e => {
+    if (dropZone.classList.contains('viewing-result')) return;
+    const f = e.dataTransfer.files[0];
+    if (f && validateFile(f)) processFile(f);
+});
+dropZone.addEventListener('click', () => {
+    if (!dropZone.classList.contains('viewing-result')) fileInput.click();
+});
+fileInput.addEventListener('change', function () {
+    if (this.files[0] && validateFile(this.files[0])) processFile(this.files[0]);
+});
+
+function validateFile(f) {
+    if (!['image/jpeg','image/png','image/webp'].includes(f.type)) {
+        alert('Please upload a JPG, PNG, or WEBP image.'); return false;
+    }
+    if (f.size > 10 * 1024 * 1024) {
+        alert('File is too large. Maximum size is 10 MB.'); return false;
+    }
+    return true;
+}
+
+function processFile(f) {
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('dropIcon').style.display = 'none';
+        document.getElementById('dropText').style.display  = 'none';
+        imgPreview.onload = () => {
+            imgPreview.onload = null;
+            imgPreview.classList.add('visible');
+            runLocalDetection();
+        };
+        imgPreview.src = e.target.result;
+    };
+    reader.readAsDataURL(f);
+}
+
+async function runLocalDetection() {
+    procOvl.classList.add('active');
+    try {
+        if (!cocoModel) {
+            procText.textContent = 'Loading AI Model…';
+            cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
         }
+        procText.textContent = 'Detecting objects…';
+        const minConf = 0.30;
+        const t0 = performance.now();
+        const predictions = await cocoModel.detect(imgPreview, undefined, minConf);
+        const elapsed = performance.now() - t0;
 
-        function resetUpload() {
-            fileInput.value = '';
-            dropZone.classList.remove('viewing-result');
-            appCard.classList.remove('has-result');
-            
-            imagePreview.classList.remove('visible');
-            setTimeout(() => {
-                imagePreview.src = '';
-                document.getElementById('dropIcon').style.display = 'flex';
-                document.getElementById('dropText').style.display = 'block';
-            }, 300);
+        // Draw annotated frame on canvas
+        const canvas = document.createElement('canvas');
+        canvas.width  = imgPreview.naturalWidth  || imgPreview.width;
+        canvas.height = imgPreview.naturalHeight || imgPreview.height;
+        const cx = canvas.getContext('2d');
+        cx.drawImage(imgPreview, 0, 0, canvas.width, canvas.height);
+
+        predictions.forEach(pred => {
+            const [x, y, w, h] = pred.bbox;
+            const color  = colorFor(pred.class);
+            const conf   = (pred.score * 100).toFixed(0) + '%';
+            const text   = `${pred.class}  ${conf}`;
+            const lw     = Math.max(2, canvas.width * 0.004);
+            const fs     = Math.max(14, canvas.width * 0.018);
+
+            // Glow rect
+            cx.strokeStyle = color;
+            cx.lineWidth   = lw;
+            cx.shadowColor = color;
+            cx.shadowBlur  = 10;
+            cx.strokeRect(x, y, w, h);
+            cx.shadowBlur  = 0;
+
+            // Label background
+            cx.font = `700 ${fs}px Inter, sans-serif`;
+            const metrics  = cx.measureText(text);
+            const padX = 8, padY = 5;
+            const boxH = fs + padY * 2;
+            const boxW = metrics.width + padX * 2;
+            const labelY = y > boxH + 4 ? y - boxH - 2 : y + lw;
+
+            cx.fillStyle   = color;
+            cx.globalAlpha = 0.9;
+            roundRect(cx, x, labelY, boxW, boxH, 5);
+            cx.fill();
+            cx.globalAlpha = 1;
+
+            cx.fillStyle = '#ffffff';
+            cx.fillText(text, x + padX, labelY + padY + fs - 3);
+        });
+
+        const b64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+        showResults({
+            annotated_image: b64,
+            count: predictions.length,
+            inference_ms: elapsed,
+            detections: predictions.map(p => ({ label: p.class, confidence: p.score })),
+        });
+
+    } catch (err) {
+        console.error(err);
+        alert('Detection failed. Please try again.');
+        resetUpload();
+    } finally {
+        procOvl.classList.remove('active');
+        procText.textContent = 'Analyzing Image…';
+    }
+}
+
+function showResults(data) {
+    dropZone.classList.add('viewing-result');
+    appCard.classList.add('has-result');
+    if (data.annotated_image) {
+        imgPreview.style.opacity = '0';
+        setTimeout(() => {
+            imgPreview.src = `data:image/jpeg;base64,${data.annotated_image}`;
+            imgPreview.style.opacity = '1';
+        }, 200);
+    }
+    statCount.textContent = data.count ?? (data.detections ? data.detections.length : 0);
+    statTime.textContent  = (data.inference_ms || 0).toFixed(1) + ' ms';
+    detList.innerHTML = '';
+    if (!data.detections || !data.detections.length) {
+        detList.innerHTML = `<div style="text-align:center;padding:2.5rem 1rem;color:var(--text-2)"><p>No objects detected.<br><small style="opacity:.6">Try a different image or lower the confidence threshold.</small></p></div>`;
+        return;
+    }
+    data.detections
+        .sort((a, b) => b.confidence - a.confidence)
+        .forEach((det, i) => {
+            const pct   = (det.confidence * 100).toFixed(1);
+            const theme = det.confidence >= 0.70 ? 'conf-high' : det.confidence >= 0.40 ? 'conf-med' : 'conf-low';
+            const el    = document.createElement('div');
+            el.className = `detection-item ${theme}`;
+            el.style.animation = `slideUp 0.3s var(--ease) ${i * 0.04}s both`;
+            el.innerHTML = `
+                <div class="det-header">
+                    <span class="det-label">${det.label}</span>
+                    <span class="det-percent">${pct}%</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill"></div></div>`;
+            detList.appendChild(el);
+            requestAnimationFrame(() =>
+                setTimeout(() => { const f = el.querySelector('.progress-fill'); if (f) f.style.width = pct + '%'; }, 60));
+        });
+}
+
+function resetUpload() {
+    fileInput.value = '';
+    dropZone.classList.remove('viewing-result');
+    appCard.classList.remove('has-result');
+    imgPreview.classList.remove('visible');
+    setTimeout(() => {
+        imgPreview.src = '';
+        document.getElementById('dropIcon').style.display = 'flex';
+        document.getElementById('dropText').style.display  = 'block';
+    }, 300);
+}
+
+document.getElementById('btnReset').addEventListener('click', resetUpload);
+document.getElementById('btnDownload').addEventListener('click', () => {
+    if (!imgPreview.src || imgPreview.src === window.location.href) return;
+    const a = document.createElement('a');
+    a.href = imgPreview.src;
+    a.download = 'visionai_annotated.jpg';
+    document.body.appendChild(a); a.click(); a.remove();
+});
+
+/* ── Webcam / In-Browser Detection ──────────────────────────── */
+const btnStart       = document.getElementById('btnStart');
+const btnStop        = document.getElementById('btnStop');
+const webcamVideo    = document.getElementById('webcamVideo');
+const detCanvas      = document.getElementById('detectionCanvas');
+const videoOverlay   = document.getElementById('videoOverlay');
+const modelOvl       = document.getElementById('modelLoadingOverlay');
+const fpsBadge       = document.getElementById('fpsBadge');
+const liveBadge      = document.getElementById('liveBadge');
+const objBadge       = document.getElementById('objBadge');
+const streamError    = document.getElementById('streamError');
+const liveDetections = document.getElementById('liveDetections');
+const confRow        = document.getElementById('confRow');
+const confSlider     = document.getElementById('confSlider');
+const confVal        = document.getElementById('confVal');
+const ctx            = detCanvas.getContext('2d');
+
+let cocoModel   = null;
+let isStreaming = false;
+let animFrameId = null;
+let mediaStream = null;
+let lastFpsTime = 0;
+let frameCount  = 0;
+let minConfidence = 0.35;
+
+/* Confidence slider */
+confSlider.addEventListener('input', () => {
+    minConfidence = parseInt(confSlider.value) / 100;
+    confVal.textContent = confSlider.value + '%';
+});
+
+/* Deterministic, vivid color per class label */
+const BOX_COLORS = [
+    '#8b5cf6','#10b981','#f59e0b','#3b82f6','#ec4899',
+    '#14b8a6','#f97316','#06b6d4','#a855f7','#84cc16',
+];
+function colorFor(label) {
+    let h = 0;
+    for (let i = 0; i < label.length; i++) h = label.charCodeAt(i) + ((h << 5) - h);
+    return BOX_COLORS[Math.abs(h) % BOX_COLORS.length];
+}
+
+btnStart.addEventListener('click', startWebcam);
+btnStop.addEventListener('click',  stopWebcam);
+
+async function startWebcam() {
+    if (isStreaming) return;
+
+    // 1. Camera permission
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false,
+        });
+    } catch (err) {
+        let msg = 'Camera access denied.';
+        if (err.name === 'NotFoundError')    msg = 'No camera found on this device.';
+        if (err.name === 'NotAllowedError')  msg = 'Camera permission denied. Please allow camera access in your browser settings.';
+        if (err.name === 'NotReadableError') msg = 'Camera is in use by another application.';
+        showError(msg, 7000); return;
+    }
+    webcamVideo.srcObject = mediaStream;
+    await webcamVideo.play();
+
+    // 2. Load model if needed
+    if (!cocoModel) {
+        modelOvl.classList.add('active');
+        const badge = document.getElementById('backendStatus');
+        const btext = document.getElementById('backendStatusText');
+        const bdot  = badge.querySelector('.status-dot');
+        badge.className = 'status-badge loading';
+        btext.textContent = 'Loading AI Model…';
+        bdot.classList.add('pulse');
+        try {
+            cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+            badge.className = 'status-badge';
+            btext.textContent = 'Model Ready';
+            bdot.classList.remove('pulse');
+        } catch {
+            modelOvl.classList.remove('active');
+            showError('Failed to load AI model. Check your internet connection.', 7000);
+            stopWebcam(); return;
         }
+        modelOvl.classList.remove('active');
+    }
 
-        btnReset.addEventListener('click', resetUpload);
+    // 3. Start streaming
+    isStreaming = true;
+    btnStart.disabled = true;
+    btnStop.disabled  = false;
+    videoOverlay.classList.add('hidden');
+    detCanvas.classList.add('active');
+    fpsBadge.style.display = 'block';
+    liveBadge.classList.add('active');
+    objBadge.classList.add('active');
+    liveDetections.classList.add('active');
+    confRow.style.display = 'flex';
+    lastFpsTime = performance.now();
+    frameCount  = 0;
+    detectLoop();
+}
 
-        // Download annotated image
-        if (btnDownload) {
-            btnDownload.addEventListener('click', () => {
-                const src = imagePreview.src;
-                if (!src) {
-                    alert('No image available to download.');
-                    return;
-                }
+async function detectLoop() {
+    if (!isStreaming) return;
 
-                // Create an anchor and trigger download
-                const a = document.createElement('a');
-                a.href = src;
-                // Prefer JPEG extension; if data URL includes type, browser will use it
-                a.download = 'annotated.jpg';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            });
-        }
+    // Sync canvas to video
+    if (webcamVideo.videoWidth && detCanvas.width !== webcamVideo.videoWidth) {
+        detCanvas.width  = webcamVideo.videoWidth;
+        detCanvas.height = webcamVideo.videoHeight;
+    }
 
-        // --- Tab 2: Webcam Stream ---
-        const btnStart = document.getElementById('btnStart');
-        const btnStop = document.getElementById('btnStop');
-        const streamImage = document.getElementById('streamImage');
-        const videoOverlay = document.getElementById('videoOverlay');
-        const fpsBadge = document.getElementById('fpsBadge');
-        const streamError = document.getElementById('streamError');
+    ctx.drawImage(webcamVideo, 0, 0, detCanvas.width, detCanvas.height);
+    const predictions = await cocoModel.detect(webcamVideo, undefined, minConfidence);
+    drawBoxes(predictions);
+    updateLiveTags(predictions);
 
-        let evtSource = null;
-        let isStreaming = false;
-        let frameCount = 0;
-        let fpsTimer = null;
+    // FPS counter
+    frameCount++;
+    const now = performance.now();
+    if (now - lastFpsTime >= 1000) {
+        fpsBadge.textContent = `FPS: ${frameCount}`;
+        frameCount  = 0;
+        lastFpsTime = now;
+    }
+    // Object count HUD
+    objBadge.textContent = `${predictions.length} object${predictions.length !== 1 ? 's' : ''}`;
 
-        btnStart.addEventListener('click', startWebcam);
-        btnStop.addEventListener('click', stopWebcam);
+    animFrameId = requestAnimationFrame(detectLoop);
+}
 
-        function startWebcam() {
-            if (isStreaming) return;
-            
-            isStreaming = true;
-            btnStart.disabled = true;
-            btnStop.disabled = false;
-            
-            videoOverlay.classList.add('hidden');
-            streamError.style.display = 'none';
-            fpsBadge.style.display = 'block';
-            streamImage.classList.add('active');
+function drawBoxes(predictions) {
+    const W = detCanvas.width;
+    predictions.forEach(pred => {
+        const [x, y, w, h] = pred.bbox;
+        const color  = colorFor(pred.class);
+        const conf   = (pred.score * 100).toFixed(0) + '%';
+        const text   = `${pred.class}  ${conf}`;
+        const lw     = 2.5;
+        const fs     = Math.max(12, Math.min(16, W * 0.018));
 
-            // FPS Calculation
-            frameCount = 0;
-            fpsBadge.textContent = 'FPS: ...';
-            fpsTimer = setInterval(() => {
-                fpsBadge.textContent = `FPS: ${frameCount}`;
-                frameCount = 0;
-            }, 1000);
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = lw;
+        ctx.shadowColor = color;
+        ctx.shadowBlur  = 9;
+        ctx.strokeRect(x, y, w, h);
+        ctx.shadowBlur  = 0;
 
-            try {
-                evtSource = new EventSource(`${API_BASE}/detect/webcam`);
-                
-                evtSource.onmessage = (event) => {
-                    if (event.data.startsWith('ERROR:')) {
-                        showStreamError(event.data.replace('ERROR:', ''));
-                        return;
-                    }
-                    frameCount++;
-                    streamImage.src = `data:image/jpeg;base64,${event.data}`;
-                };
+        ctx.font = `700 ${fs}px Inter, sans-serif`;
+        const metrics  = ctx.measureText(text);
+        const padX = 7, padY = 5;
+        const boxH = fs + padY * 2;
+        const boxW = metrics.width + padX * 2;
+        const labelY = y > boxH + 4 ? y - boxH - 2 : y + lw;
 
-                evtSource.onerror = (err) => {
-                    console.error("EventSource error:", err);
-                    showStreamError("Connection lost. Retrying or backend down.");
-                };
-            } catch (err) {
-                showStreamError("Failed to initiate stream.");
-            }
-        }
+        ctx.fillStyle   = color;
+        ctx.globalAlpha = 0.9;
+        roundRect(ctx, x, labelY, boxW, boxH, 5);
+        ctx.fill();
+        ctx.globalAlpha = 1;
 
-        function stopWebcam() {
-            if (!isStreaming) return;
-            
-            if (evtSource) {
-                evtSource.close();
-                evtSource = null;
-            }
-            clearInterval(fpsTimer);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(text, x + padX, labelY + padY + fs - 2);
+    });
+}
 
-            isStreaming = false;
-            btnStart.disabled = false;
-            btnStop.disabled = true;
-            
-            videoOverlay.classList.remove('hidden');
-            fpsBadge.style.display = 'none';
-            streamImage.classList.remove('active');
-            streamImage.src = '';
-            streamError.style.display = 'none';
-        }
+function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r);
+    c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h);
+    c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r);
+    c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+}
 
-        function showStreamError(msg) {
-            stopWebcam();
-            streamError.textContent = msg;
-            streamError.style.display = 'block';
-            setTimeout(() => { streamError.style.display = 'none'; }, 5000);
-        }
+function updateLiveTags(predictions) {
+    liveDetections.innerHTML = '';
+    if (!predictions.length) {
+        liveDetections.innerHTML = '<span class="live-empty">No objects detected…</span>';
+        return;
+    }
+    // Deduplicate by class, keep highest confidence
+    const seen = {};
+    predictions.forEach(p => {
+        if (!seen[p.class] || p.score > seen[p.class]) seen[p.class] = p.score;
+    });
+    Object.entries(seen)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([label, score]) => {
+            const tag = document.createElement('span');
+            tag.className = 'live-tag';
+            tag.innerHTML = `${label} <span class="live-tag-conf">${(score * 100).toFixed(0)}%</span>`;
+            liveDetections.appendChild(tag);
+        });
+}
 
-    </script>
+function stopWebcam() {
+    isStreaming = false;
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    webcamVideo.srcObject = null;
+
+    btnStart.disabled = false;
+    btnStop.disabled  = true;
+    videoOverlay.classList.remove('hidden');
+    detCanvas.classList.remove('active');
+    fpsBadge.style.display = 'none';
+    liveBadge.classList.remove('active');
+    objBadge.classList.remove('active');
+    liveDetections.classList.remove('active');
+    liveDetections.innerHTML = '';
+    confRow.style.display = 'none';
+    ctx.clearRect(0, 0, detCanvas.width, detCanvas.height);
+}
+
+function showError(msg, duration = 5000) {
+    streamError.textContent = msg;
+    streamError.style.display = 'block';
+    setTimeout(() => { streamError.style.display = 'none'; }, duration);
+}
+</script>
 </body>
 </html>
